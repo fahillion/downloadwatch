@@ -44,7 +44,7 @@ import uuid as uuidlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 PRODUCT = "DownloadWatch for Plex"
 PLEX_TV = "https://plex.tv"
 DONE_AT = 99.0
@@ -75,9 +75,34 @@ def env_bool(env, key, default=False):
     return str(env.get(key, str(default))).strip().lower() in ("1", "true", "yes", "on")
 
 
-def load_config(env=None):
-    env = os.environ if env is None else env
-    data = env.get("DATA_DIR", "/data")
+def read_env_file(path):
+    """KEY=VALUE lines (# comments, optional quotes). Used by the Windows install and --config."""
+    out = {}
+    with open(path, encoding="utf-8-sig") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            value = value.strip()
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+                value = value[1:-1]
+            out[key.strip()] = value
+    return out
+
+
+def default_data_dir():
+    if os.name == "nt":
+        return os.path.join(os.environ.get("ProgramData", r"C:\ProgramData"), "DownloadWatch", "data")
+    return "/data"
+
+
+def load_config(env=None, config_file=None):
+    env = dict(os.environ if env is None else env)
+    config_file = config_file or env.get("DOWNLOADWATCH_CONFIG")
+    if config_file:
+        env = {**read_env_file(config_file), **env}   # real environment variables win over the file
+    data = env.get("DATA_DIR") or default_data_dir()
     tzname = env.get("TIMEZONE") or env.get("TZ") or "UTC"
     try:
         tz = ZoneInfo(tzname)
@@ -947,7 +972,7 @@ class Handler(BaseHTTPRequestHandler):
 # ---------------------------------------------------------------- main
 def setup_logging():
     fmt = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
-    handlers = [logging.StreamHandler(sys.stdout)]
+    handlers = [logging.StreamHandler(sys.stdout)] if sys.stdout else []  # no console under pythonw/Task Scheduler
     if C["log_file"]:
         os.makedirs(os.path.dirname(C["log_file"]) or ".", exist_ok=True)
         handlers.append(logging.handlers.RotatingFileHandler(C["log_file"], maxBytes=5_000_000, backupCount=5))
@@ -959,7 +984,16 @@ def setup_logging():
 
 def main():
     global TOKEN
-    C.update(load_config())
+    config_file = None
+    args = sys.argv[1:]
+    if args[:1] == ["--version"]:
+        print(f"{PRODUCT} {__version__}")
+        return
+    if args[:1] == ["--config"] and len(args) > 1:
+        config_file = args[1]
+    elif args:
+        sys.exit("usage: downloadwatch.py [--config PATH] | [--version]")
+    C.update(load_config(config_file=config_file))
     setup_logging()
     state["started"] = iso(utcnow())
     if C["demo"]:

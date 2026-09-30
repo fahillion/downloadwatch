@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0
+
+- **Windows version (no Docker):** a zip with the official embeddable Python, time zone data and an installer that runs DownloadWatch at startup as a Scheduled Task, restricts the settings folder to Administrators/SYSTEM, and opens the firewall on private networks only. `Try-Demo.cmd` to try it without installing. Tested automatically on Windows for every change (install, login, upgrade, uninstall).
+- Settings file support: `--config PATH` (or `DOWNLOADWATCH_CONFIG`) reads `KEY=VALUE` lines; environment variables still win.
+- `--version`; logging works without a console.
+
 ## 0.1.1
 
 - Fix: on first load the downloads table could show times in the browser's time zone instead of `TIMEZONE` until the next refresh.

@@ -157,6 +157,15 @@ class Helpers(Base):
         c = dw.load_config({"NAV_LINKS": "Home=/,Grafana=http://g:3000,Bad=javascript:alert(1),Empty="})
         self.assertEqual([n["label"] for n in c["nav"]], ["Home", "Grafana"])
 
+    def test_config_file(self):
+        path = os.path.join(self.tmp.name, "downloadwatch.env")
+        with open(path, "w", encoding="utf-8-sig") as f:   # with BOM, as Windows editors often write
+            f.write('# comment\nPLEX_URL=http://10.0.0.5:32400\nAUTH_PASSWORD="p w=1"\nTIMEZONE=Europe/London\nbroken line\n')
+        c = dw.load_config({"TIMEZONE": "Asia/Tokyo"}, config_file=path)
+        self.assertEqual(c["plex_url"], "http://10.0.0.5:32400")
+        self.assertEqual(c["auth_password"], "p w=1")
+        self.assertEqual(c["tzname"], "Asia/Tokyo")          # environment beats the file
+
     def test_bad_timezone_falls_back_to_utc(self):
         self.assertEqual(dw.load_config({"TIMEZONE": "Mars/Base"})["tzname"], "UTC")
 
@@ -253,7 +262,8 @@ class SignIn(Base):
         self.assertEqual(dw.TOKEN, "server-token-xyz")
         self.assertEqual(self.used_token, "server-token-xyz")
         self.assertEqual(dw.read_text(dw.C["token_file"]), "server-token-xyz")
-        self.assertEqual(os.stat(dw.C["token_file"]).st_mode & 0o777, 0o600)
+        if os.name != "nt":  # Windows uses folder ACLs (set by the installer) instead of mode bits
+            self.assertEqual(os.stat(dw.C["token_file"]).st_mode & 0o777, 0o600)
 
     def test_not_owner_refused(self):
         r = self.run_flow(pin_token="account-token", owned=False)

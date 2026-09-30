@@ -11,7 +11,8 @@ Plex shows a download (the **Download** button in the Plex apps, for offline vie
 - **Search and filters:** by user, title, type, status and date range (today, 7 days, 30 days, this month, custom).
 - **Per-user totals**, a detail view for each download, and **CSV export** of whatever you have filtered.
 - **Easy setup:** sign in with a code at plex.tv/link; no digging for tokens.
-- **Small and self-contained:** one container (~70 MB), Python standard library only, a single SQLite file. Light and dark themes.
+- **Runs where you are:** Docker (PC, NAS, Raspberry Pi) or a Windows installer, no Docker needed.
+- **Small and self-contained:** one container (~70 MB) or an 11 MB Windows zip, Python standard library only, a single SQLite file. Light and dark themes.
 
 > Not affiliated with or endorsed by Plex Inc. "Plex" is a trademark of Plex Inc.
 
@@ -23,7 +24,24 @@ docker run --rm -p 8090:8090 -e DEMO=true ghcr.io/fahillion/downloadwatch:latest
 
 Open http://localhost:8090. Demo mode uses made-up users, public-domain films and fictional shows, with simulated downloads in progress.
 
-## Install
+## Install on Windows (no Docker)
+
+For PCs that only run Windows (10/11 or Server 2016+, 64-bit). Everything is included: the official Python from python.org and the app. No separate installs.
+
+1. Download `DownloadWatch-<version>-windows-x64.zip` from the [latest release](https://github.com/fahillion/downloadwatch/releases/latest). Right-click it, choose **Properties**, tick **Unblock**, then unzip it.
+2. *(Optional)* Double-click **Try-Demo.cmd** to see it with made-up data.
+3. Open **PowerShell as Administrator** in the unzipped folder and run:
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\Install-DownloadWatch.ps1
+   ```
+
+   It asks for your Plex server's address, your time zone and a dashboard password. Then it installs to `C:\Program Files\DownloadWatch`, keeps settings and history in `C:\ProgramData\DownloadWatch` (readable only by Administrators and SYSTEM), starts DownloadWatch at boot as a background Scheduled Task, and allows port 8090 through Windows Firewall on private networks.
+4. Open the address it prints, log in, click **Get a code**, and enter it at [plex.tv/link](https://plex.tv/link).
+
+To upgrade, run the new version's installer (it keeps your settings and history). To remove it, run `C:\Program Files\DownloadWatch\Uninstall-DownloadWatch.ps1` (add `-RemoveData` to delete the history too). `README-Windows.txt` in the zip has the details.
+
+## Install with Docker
 
 You need Docker on any always-on machine on the same network as your Plex server (it does **not** have to be the Plex machine), and the Plex account that **owns** the server.
 
@@ -81,6 +99,7 @@ All settings are environment variables (put them in `.env`).
 | `LOG_FILE` | | Also log to this file (rotated, 5 × 5 MB). Logs always go to stdout. |
 | `DEBUG_PLEX_ACTIVITY` | `false` | Log raw download activity from Plex (token removed), for troubleshooting. |
 | `DEMO` | `false` | Sample data, no Plex connection. |
+| `HOST` | `0.0.0.0` | Address to listen on (`127.0.0.1` = this machine only). |
 
 ## How it works
 
@@ -131,7 +150,9 @@ sudo systemctl daemon-reload && sudo systemctl enable --now downloadwatch
 
 Or just run it: `PLEX_URL=http://192.168.1.10:32400 DATA_DIR=./data python3 app/downloadwatch.py`
 
-On Windows or macOS, install Python 3.10+ and run the same command (set the variables the way your shell does).
+On macOS, install Python 3.10+ and run the same command. On Windows, use the Windows zip above, or install Python 3.10+ plus `pip install tzdata` (Windows has no built-in time zone database).
+
+Settings can also come from a file of `KEY=VALUE` lines: `python3 app/downloadwatch.py --config /etc/downloadwatch.env` (environment variables take precedence).
 
 ## Troubleshooting
 

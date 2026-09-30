@@ -1,10 +1,11 @@
-# Push a tag like v0.1.0 to publish ghcr.io/<owner>/downloadwatch:<version> and :latest (amd64 + arm64).
+# Push a tag like v0.2.0 to publish ghcr.io/<owner>/downloadwatch:<version> and :latest (amd64 + arm64),
+# and a GitHub Release with the tested Windows zip and the changelog notes.
 name: Release
 on:
   push:
     tags: ["v*.*.*"]
 permissions:
-  contents: read
+  contents: write
   packages: write
 jobs:
   image:
@@ -33,3 +34,34 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Build the Windows zip
+        run: python scripts/build_windows.py
+      - name: Install, check, upgrade and uninstall
+        shell: powershell
+        run: .github/scripts/test-windows-install.ps1 -Zip (Get-ChildItem dist/*.zip).FullName
+      - name: Release notes from CHANGELOG.md
+        shell: python
+        run: |
+          import os, re
+          version = os.environ["GITHUB_REF_NAME"].lstrip("v")
+          text = open("CHANGELOG.md", encoding="utf-8").read()
+          m = re.search(r"^## " + re.escape(version) + r"\b.*?\n(.*?)(?=^## |\Z)", text, re.S | re.M)
+          body = (m.group(1).strip() if m else "See CHANGELOG.md.") + (
+              "\n\n**Docker:** `docker pull ghcr.io/fahillion/downloadwatch:" + version + "`"
+              "\n\n**Windows (no Docker):** download `DownloadWatch-" + version + "-windows-x64.zip` below, unzip, "
+              "and follow README-Windows.txt (double-click Try-Demo.cmd to try it first).")
+          open("release-notes.md", "w", encoding="utf-8").write(body)
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/*.zip dist/*.zip.sha256 \
+            --title "DownloadWatch for Plex ${GITHUB_REF_NAME#v}" --notes-file release-notes.md --verify-tag

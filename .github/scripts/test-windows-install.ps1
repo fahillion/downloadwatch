@@ -40,6 +40,8 @@ try {
     # upgrade in place keeps settings
     & "$($pkg.FullName)\Install-DownloadWatch.ps1" -Unattended
     Check ((Get-Status "http://127.0.0.1:8090/" -Login) -eq 200) "still works after re-install (settings kept)"
+    $acl = (Get-Acl $cfg).Access | ForEach-Object { $_.IdentityReference.Value }
+    Check (($acl -match "Administrators") -and -not ($acl -match "Users|Everyone")) "settings ACL after re-install ($($acl -join ', '))"
 
     & "C:\Program Files\DownloadWatch\Uninstall-DownloadWatch.ps1" -RemoveData
     Check (-not (Get-ScheduledTask -TaskName DownloadWatch -ErrorAction SilentlyContinue)) "task removed"

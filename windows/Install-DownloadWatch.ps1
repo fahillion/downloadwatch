@@ -158,8 +158,14 @@ foreach ($file in @("Uninstall-DownloadWatch.ps1", "Try-Demo.cmd", "README-Windo
 
 # ---------------------------------------------------------------- data folder (SYSTEM + Administrators only)
 New-Item -ItemType Directory -Force -Path $dataDir, (Split-Path $logFile) | Out-Null
-& icacls $DataRoot /inheritance:r /grant:r "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-544:(OI)(CI)F" /T /Q | Out-Null
+# Protect the folder itself, then make everything inside inherit from it (per-file grants with /T would strip
+# the files' inherited entries and could lock Administrators out of an existing settings file).
+& icacls $DataRoot /inheritance:r /grant:r "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-544:(OI)(CI)F" /Q | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "Could not set permissions on $DataRoot." }
+if (Get-ChildItem -Force $DataRoot) {
+    & icacls (Join-Path $DataRoot "*") /reset /T /C /Q | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Could not reset permissions inside $DataRoot." }
+}
 
 if (-not $keep) {
     $lines = @(

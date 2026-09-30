@@ -1,0 +1,24 @@
+# systemd unit for running DownloadWatch without Docker (see README "Without Docker").
+[Unit]
+Description=DownloadWatch for Plex
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=downloadwatch
+Group=downloadwatch
+EnvironmentFile=/etc/downloadwatch.env
+Environment=DATA_DIR=/var/lib/downloadwatch
+ExecStart=/usr/bin/python3 /opt/downloadwatch/app/downloadwatch.py
+Restart=on-failure
+RestartSec=5
+StateDirectory=downloadwatch
+StateDirectoryMode=0700
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

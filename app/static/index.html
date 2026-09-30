@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DownloadWatch</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="./"><img src="favicon.svg" alt="" width="30" height="30"><span id="siteTitle">DownloadWatch</span><small>for Plex</small></a>
+  <nav class="tabs" id="nav"></nav>
+</div></header>
+
+<div id="banners" class="wrap"></div>
+
+<main class="wrap" id="setupView" hidden>
+  <div class="intro">
+    <h1>Connect to your Plex server</h1>
+    <p>DownloadWatch needs permission to read your server's activity. Sign in with the Plex account that <b>owns</b> the server.</p>
+  </div>
+  <section class="card setup">
+    <div id="setupMissingUrl" hidden>
+      <p class="bad">PLEX_URL is not set.</p>
+      <p>Set <code>PLEX_URL</code> to your server's LAN address, for example <code>http://192.168.1.10:32400</code>, and restart DownloadWatch.</p>
+    </div>
+    <div id="setupStart">
+      <ol>
+        <li>Click <b>Get a code</b>.</li>
+        <li>Open <a href="https://plex.tv/link" target="_blank" rel="noopener noreferrer">plex.tv/link</a> (any device), sign in, and enter the code.</li>
+        <li>This page continues by itself once Plex confirms.</li>
+      </ol>
+      <p><button class="btn primary" id="getCode" type="button">Get a code</button></p>
+    </div>
+    <div id="setupCode" hidden>
+      <p>Enter this code at <a href="https://plex.tv/link" target="_blank" rel="noopener noreferrer"><b>plex.tv/link</b></a>:</p>
+      <div class="code" id="code">····</div>
+      <p class="muted small">Waiting for Plex… the code expires in <span id="expires">15:00</span>.</p>
+    </div>
+    <p id="setupMsg" role="status"></p>
+    <details class="muted small"><summary>Prefer to paste a token?</summary>
+      <p>Set the <code>PLEX_TOKEN</code> environment variable instead and restart. See the README for how to find it.</p>
+    </details>
+  </section>
+</main>
+
+<main class="wrap" id="dashView" hidden>
+  <div class="intro">
+    <h1>Plex download activity</h1>
+    <p><span id="since">Every download from your Plex server, recorded as it happens.</span> <span id="conn" class="badge">checking…</span> <button class="linkish" id="relink" type="button" hidden>Sign in again</button></p>
+  </div>
+
+  <section class="cards">
+    <div class="stat"><div class="k">Today</div><div class="v" id="cToday">–</div></div>
+    <div class="stat"><div class="k">Last 7 days</div><div class="v" id="c7">–</div></div>
+    <div class="stat"><div class="k">Last 30 days</div><div class="v" id="c30">–</div></div>
+    <div class="stat"><div class="k">Active now</div><div class="v" id="cActive">–</div></div>
+    <div class="stat"><div class="k">Data · 30 days</div><div class="v" id="cGb">–</div><div class="f">source file sizes</div></div>
+    <div class="stat"><div class="k">Top downloader · 30 days</div><div class="v small" id="cTop">–</div></div>
+  </section>
+
+  <section class="group" id="activeWrap" hidden>
+    <h2>Downloading now</h2>
+    <div id="active" class="activegrid"></div>
+  </section>
+
+  <div class="layout">
+    <section class="group history">
+      <h2>Downloads</h2>
+      <form class="filters" id="filters">
+        <input type="search" name="q" placeholder="Search title, show or user" aria-label="Search">
+        <select name="user" aria-label="User"><option value="">All users</option></select>
+        <select name="type" aria-label="Type"><option value="">All types</option></select>
+        <select name="status" aria-label="Status"><option value="">Any status</option><option>Active</option><option>Completed</option><option>Stopped</option><option>Unknown</option></select>
+        <select name="range" aria-label="Date range">
+          <option value="all">All time</option><option value="today">Today</option><option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option><option value="month">This month</option><option value="custom">Custom…</option>
+        </select>
+        <span class="custom" hidden><input type="date" name="from" aria-label="From"> – <input type="date" name="to" aria-label="To"></span>
+        <button type="button" class="btn" id="export">Export CSV</button>
+      </form>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Started</th><th>User</th><th>Title</th><th>Type</th><th>Status</th><th>Finished</th><th class="num">Size</th></tr></thead>
+          <tbody id="rows"><tr><td colspan="7" class="muted">Loading…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="pager"><span id="count" class="muted"></span><span><button class="btn" id="prev" type="button">‹ Newer</button> <button class="btn" id="next" type="button">Older ›</button></span></div>
+    </section>
+
+    <section class="group users">
+      <h2>By user</h2>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>User</th><th class="num">Downloads</th><th class="num">GB</th><th>Last</th></tr></thead>
+          <tbody id="users"></tbody>
+        </table>
+      </div>
+      <p class="muted small">Click a user to filter the list.</p>
+    </section>
+  </div>
+</main>
+
+<div id="detail" class="drawer" hidden>
+  <div class="drawer-box" role="dialog" aria-modal="true" aria-labelledby="dTitle">
+    <button class="btn close" id="dClose" type="button" aria-label="Close">✕</button>
+    <h3 id="dTitle"></h3>
+    <dl id="dList"></dl>
+    <details><summary>Raw Plex activity (last seen)</summary><pre id="dRaw"></pre></details>
+  </div>
+</div>
+<footer class="wrap muted small">
+  <p>Sizes are the source file on the server; a download converted to a lower quality transfers less. <b>Stopped</b> means the download ended before 99 % (cancelled, failed or interrupted — Plex doesn't say which). <b>Unknown</b> means it ended while DownloadWatch or Plex was unreachable.</p>
+  <p><a href="https://github.com/fahillion/downloadwatch" id="repo" target="_blank" rel="noopener noreferrer">DownloadWatch for Plex</a> <span id="version"></span> · not affiliated with Plex Inc.</p>
+</footer>
+<script src="app.js"></script>
+</body>
+</html>

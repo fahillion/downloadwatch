@@ -1,0 +1,16 @@
+# DownloadWatch for Plex — copy .env.example to .env, edit it, then: docker compose up -d
+services:
+  downloadwatch:
+    image: ghcr.io/fahillion/downloadwatch:latest
+    # build: .            # or build from this folder instead of pulling the image
+    container_name: downloadwatch
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8090:8090"       # to limit to one interface: "192.168.1.20:8090:8090"
+    volumes:
+      - ./data:/data      # history database, saved Plex token, nightly snapshot
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]

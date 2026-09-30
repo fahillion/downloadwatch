@@ -44,7 +44,7 @@ import uuid as uuidlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 PRODUCT = "DownloadWatch for Plex"
 PLEX_TV = "https://plex.tv"
 DONE_AT = 99.0

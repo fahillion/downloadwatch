@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1
+
+- Fix: on first load the downloads table could show times in the browser's time zone instead of `TIMEZONE` until the next refresh.
+
 ## 0.1.0 — first public release
 
 - Records every Plex client download (live notification feed plus a 5-second backstop poll) into SQLite.

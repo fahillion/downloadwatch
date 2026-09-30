@@ -226,6 +226,7 @@
   async function boot() {
     try { CFG = await (await fetch(API + "config", { cache: "no-store" })).json(); }
     catch (e) { banner("Can't reach DownloadWatch.", "warn"); return; }
+    TZ = CFG.timezone || TZ;   // before the first render, so every time on the page uses the configured zone
     document.title = CFG.title === "DownloadWatch" ? "DownloadWatch for Plex" : CFG.title;
     $("siteTitle").textContent = CFG.title;
     $("version").textContent = "v" + CFG.version;
